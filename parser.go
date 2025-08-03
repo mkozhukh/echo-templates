@@ -16,14 +16,27 @@ func parseFrontMatter(reader io.Reader) (map[string]any, string, error) {
 
 	scanner := bufio.NewScanner(reader)
 	var contentBuilder strings.Builder
-	inFrontMatter := true
+	inFrontMatter := false
+	lineNum := 0
 
 	for scanner.Scan() {
 		line := scanner.Text()
+		lineNum++
 
-		if inFrontMatter && strings.HasPrefix(line, "# ") {
+		// Check if first line is front matter delimiter
+		if lineNum == 1 && line == "---" {
+			inFrontMatter = true
+			continue
+		}
+
+		// Check for end of front matter
+		if inFrontMatter && line == "---" {
+			inFrontMatter = false
+			continue
+		}
+
+		if inFrontMatter {
 			// Parse front-matter line
-			line = strings.TrimPrefix(line, "# ")
 			parts := strings.SplitN(line, ":", 2)
 			if len(parts) == 2 {
 				key := strings.TrimSpace(parts[0])
@@ -47,21 +60,12 @@ func parseFrontMatter(reader io.Reader) (map[string]any, string, error) {
 				}
 			}
 		} else {
-			// End of front-matter, rest is content
-			inFrontMatter = false
+			// Content part
 			if contentBuilder.Len() > 0 {
 				contentBuilder.WriteString("\n")
 			}
 			contentBuilder.WriteString(line)
 		}
-	}
-
-	// Read remaining content
-	for scanner.Scan() {
-		if contentBuilder.Len() > 0 {
-			contentBuilder.WriteString("\n")
-		}
-		contentBuilder.WriteString(scanner.Text())
 	}
 
 	if err := scanner.Err(); err != nil {

@@ -79,9 +79,10 @@ You are a {{role}} assistant.
 @user:
 {{query}}`), 0644)
 
-	os.WriteFile(filepath.Join(tmpDir, "with-defaults.md"), []byte(`# default.role: helpful
-# default.tone: friendly
-
+	os.WriteFile(filepath.Join(tmpDir, "with-defaults.md"), []byte(`---
+default.role: helpful
+default.tone: friendly
+---
 @system:
 You are a {{role}} assistant with a {{tone}} tone.`), 0644)
 
@@ -235,11 +236,12 @@ Hello {{name}}!`), 0644)
 func TestGenerateWithMetadata(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	os.WriteFile(filepath.Join(tmpDir, "with-meta.md"), []byte(`# temperature: 0.8
-# max_tokens: 2000
-# model: gpt-4
-# description: Test template
-
+	os.WriteFile(filepath.Join(tmpDir, "with-meta.md"), []byte(`---
+temperature: 0.8
+max_tokens: 2000
+model: gpt-4
+description: Test template
+---
 @system:
 Hello!`), 0644)
 

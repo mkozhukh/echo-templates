@@ -15,13 +15,14 @@ func TestParseFrontMatter(t *testing.T) {
 	}{
 		{
 			name: "full front-matter",
-			input: `# temperature: 0.7
-# max_tokens: 1000
-# model: gpt-4
-# description: A helpful assistant template
-# default.role: helpful
-# default.style: professional
-
+			input: `---
+temperature: 0.7
+max_tokens: 1000
+model: gpt-4
+description: A helpful assistant template
+default.role: helpful
+default.style: professional
+---
 @system:
 You are a {{role}} assistant.`,
 			expectedMeta: map[string]any{
@@ -49,9 +50,10 @@ You are an assistant.`,
 		},
 		{
 			name: "partial front-matter",
-			input: `# model: claude-3
-# default.tone: friendly
-
+			input: `---
+model: claude-3
+default.tone: friendly
+---
 Content here`,
 			expectedMeta: map[string]any{
 				"model": "claude-3",
@@ -63,10 +65,11 @@ Content here`,
 		},
 		{
 			name: "invalid values ignored",
-			input: `# temperature: invalid
-# max_tokens: not-a-number
-# model: gpt-4
-
+			input: `---
+temperature: invalid
+max_tokens: not-a-number
+model: gpt-4
+---
 Content`,
 			expectedMeta: map[string]any{
 				"temperature": "invalid",

@@ -113,21 +113,22 @@ I'll help you with {{domain}}. Let me analyze your request.
 
 ### Front-matter (Optional)
 
-Templates can include metadata using comment syntax at the beginning of the file:
+Templates can include metadata using YAML-like syntax at the beginning of the file:
 
 ```markdown
-# temperature: 0.7
-# max_tokens: 1000
-# model: gpt-4
-# description: A helpful assistant template
-# default.role: helpful
-# default.style: professional
-
+---
+temperature: 0.7
+max_tokens: 1000
+model: gpt-4
+description: A helpful assistant template
+default.role: helpful
+default.style: professional
+---
 @system:
 You are a {{role}} assistant with a {{style}} communication style.
 ```
 
-Front-matter supports any key-value pairs:
+Front-matter must be delimited by `---` lines and appear at the very beginning of the file. It supports any key-value pairs:
 - Keys can be any string
 - Values can be strings or numbers (integers or floats)
 - Keys starting with `default.` define default values for variables
@@ -301,9 +302,10 @@ Generates messages from a string template and returns any metadata defined in fr
 
 **Example:**
 ```go
-template := `# temperature: 0.7
-# model: gpt-4
-
+template := `---
+temperature: 0.7
+model: gpt-4
+---
 Hello {{name}}!`
 
 messages, metadata, err := echotemplates.GenerateWithMetadata(

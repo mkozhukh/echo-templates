@@ -23,9 +23,10 @@ You are a {{role}} assistant.
 
 @user:
 {{query}}`,
-		"with-vars.md": `# default.style: friendly
-# temperature: 0.7
-
+		"with-vars.md": `---
+default.style: friendly
+temperature: 0.7
+---
 @system:
 You are a {{role|helpful}} assistant with {{style}} style.
 Please help with {{{raw_content}}}.`,

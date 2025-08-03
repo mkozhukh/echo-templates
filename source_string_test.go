@@ -30,9 +30,10 @@ You are {{role}}.
 		},
 		{
 			name: "template with defaults",
-			content: `# default.greeting: Hello
-# default.name: Friend
-
+			content: `---
+default.greeting: Hello
+default.name: Friend
+---
 {{greeting}} {{name}}!`,
 			vars:     map[string]string{"name": "Alice"},
 			wantMsgs: 1,
@@ -78,11 +79,12 @@ You are {{role}}.
 }
 
 func TestStringGenerationWithMetadata(t *testing.T) {
-	content := `# temperature: 0.7
-# max_tokens: 1000
-# model: gpt-4
-# default.role: assistant
-
+	content := `---
+temperature: 0.7
+max_tokens: 1000
+model: gpt-4
+default.role: assistant
+---
 @system:
 You are a {{role}}.`
 
