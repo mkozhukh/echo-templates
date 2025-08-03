@@ -45,13 +45,47 @@ func NewFileSystemSource(rootDir string) (*FileSystemSource, error) {
 
 // Open returns a reader for the template content
 func (s *FileSystemSource) Open(path string) (io.ReadCloser, error) {
-	fullPath := filepath.Join(s.rootDir, path)
+	// Clean the path to prevent directory traversal
+	cleanPath := filepath.Clean(path)
+	if strings.HasPrefix(cleanPath, "..") || filepath.IsAbs(cleanPath) {
+		return nil, fmt.Errorf("invalid path: %s", path)
+	}
+
+	fullPath := filepath.Join(s.rootDir, cleanPath)
+
+	// Verify the resolved path is within rootDir
+	absPath, err := filepath.Abs(fullPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve path: %w", err)
+	}
+
+	if !strings.HasPrefix(absPath, s.rootDir) {
+		return nil, fmt.Errorf("path outside root directory: %s", path)
+	}
+
 	return os.Open(fullPath)
 }
 
 // Stat returns information about a template
 func (s *FileSystemSource) Stat(path string) (TemplateInfo, error) {
-	fullPath := filepath.Join(s.rootDir, path)
+	// Clean the path to prevent directory traversal
+	cleanPath := filepath.Clean(path)
+	if strings.HasPrefix(cleanPath, "..") || filepath.IsAbs(cleanPath) {
+		return TemplateInfo{}, fmt.Errorf("invalid path: %s", path)
+	}
+
+	fullPath := filepath.Join(s.rootDir, cleanPath)
+
+	// Verify the resolved path is within rootDir
+	absPath, err := filepath.Abs(fullPath)
+	if err != nil {
+		return TemplateInfo{}, fmt.Errorf("failed to resolve path: %w", err)
+	}
+
+	if !strings.HasPrefix(absPath, s.rootDir) {
+		return TemplateInfo{}, fmt.Errorf("path outside root directory: %s", path)
+	}
+
 	info, err := os.Stat(fullPath)
 	if err != nil {
 		return TemplateInfo{}, err
