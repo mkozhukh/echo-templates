@@ -122,3 +122,14 @@ func (c *templateCache) clear() {
 	c.entries = make(map[string]*list.Element)
 	c.lru = list.New()
 }
+
+// remove removes a specific entry from the cache
+func (c *templateCache) remove(key string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if elem, exists := c.entries[key]; exists {
+		c.lru.Remove(elem)
+		delete(c.entries, key)
+	}
+}

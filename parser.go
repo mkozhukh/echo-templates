@@ -11,7 +11,7 @@ import (
 // parseFrontMatter extracts front-matter from the beginning of a template
 func parseFrontMatter(reader io.Reader) (map[string]any, string, error) {
 	metadata := make(map[string]any)
-	defaults := make(map[string]any)
+	defaults := make(map[string]string)
 	metadata["defaults"] = defaults
 
 	scanner := bufio.NewScanner(reader)
@@ -32,16 +32,7 @@ func parseFrontMatter(reader io.Reader) (map[string]any, string, error) {
 				// Check for default.variable format
 				if strings.HasPrefix(key, "default.") {
 					varName := strings.TrimPrefix(key, "default.")
-					// Try to parse as number
-					if num, err := strconv.ParseFloat(value, 64); err == nil {
-						if num == float64(int(num)) {
-							defaults[varName] = int(num)
-						} else {
-							defaults[varName] = num
-						}
-					} else {
-						defaults[varName] = value
-					}
+					defaults[varName] = value
 				} else {
 					// Try to parse as number for regular metadata
 					if num, err := strconv.ParseFloat(value, 64); err == nil {
@@ -96,15 +87,12 @@ type parsedTemplate struct {
 }
 
 // substituteVariables replaces placeholders with actual values
-func substituteVariables(content string, vars map[string]string, defaults map[string]any, opts GenerateOptions) (string, error) {
+func substituteVariables(content string, vars map[string]string, defaults map[string]string, opts GenerateOptions) (string, error) {
 	// First handle triple-brace raw placeholders
 	content = rawPlaceholderRegex.ReplaceAllStringFunc(content, func(match string) string {
 		varName := strings.TrimSpace(match[3 : len(match)-3])
 		if value, ok := vars[varName]; ok {
 			return value
-		}
-		if value, ok := defaults[varName]; ok {
-			return toString(value)
 		}
 		return match // Keep original if not found
 	})
@@ -131,9 +119,6 @@ func substituteVariables(content string, vars map[string]string, defaults map[st
 		// Try to get value from vars, then defaults, then use default value
 		if value, ok := vars[varName]; ok {
 			return value
-		}
-		if value, ok := defaults[varName]; ok {
-			return toString(value)
 		}
 		if defaultValue != "" {
 			return defaultValue

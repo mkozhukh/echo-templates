@@ -15,6 +15,18 @@ type TemplateEngine interface {
 
 	// ClearCache removes cached templates (useful for development)
 	ClearCache()
+
+	// ValidateTemplate checks if a template is valid without generating messages
+	ValidateTemplate(name string) error
+
+	// GetTemplateVariables returns all variable names used in a template
+	GetTemplateVariables(name string) ([]string, error)
+
+	// TemplateExists checks if a template file exists
+	TemplateExists(name string) bool
+
+	// ListTemplates returns all available template paths relative to RootDir
+	ListTemplates() ([]string, error)
 }
 
 // GenerateOptions configures template generation behavior
@@ -31,15 +43,15 @@ type GenerateOptions struct {
 
 // Config configures the template engine
 type Config struct {
-	// RootDir is the base directory for template files
-	RootDir string
+	// Source is the template source (required)
+	Source TemplateSource
+
+	// DevMode disables caching for development (default: false)
+	DevMode bool
 
 	// DefaultOptions applies to all Generate calls unless overridden
 	DefaultOptions GenerateOptions
 
-	// EnableCache enables in-memory template caching (default: true)
-	EnableCache bool
-
-	// CacheSize maximum number of templates to cache (default: 100)
+	// CacheSize maximum number of templates to cache in production mode (default: 100)
 	CacheSize int
 }

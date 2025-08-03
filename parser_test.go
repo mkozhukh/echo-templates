@@ -29,7 +29,7 @@ You are a {{role}} assistant.`,
 				"max_tokens":  1000,
 				"model":       "gpt-4",
 				"description": "A helpful assistant template",
-				"defaults": map[string]any{
+				"defaults": map[string]string{
 					"role":  "helpful",
 					"style": "professional",
 				},
@@ -42,7 +42,7 @@ You are a {{role}} assistant.`,
 			input: `@system:
 You are an assistant.`,
 			expectedMeta: map[string]any{
-				"defaults": map[string]any{},
+				"defaults": map[string]string{},
 			},
 			expectedContent: `@system:
 You are an assistant.`,
@@ -55,7 +55,7 @@ You are an assistant.`,
 Content here`,
 			expectedMeta: map[string]any{
 				"model": "claude-3",
-				"defaults": map[string]any{
+				"defaults": map[string]string{
 					"tone": "friendly",
 				},
 			},
@@ -72,7 +72,7 @@ Content`,
 				"temperature": "invalid",
 				"max_tokens":  "not-a-number",
 				"model":       "gpt-4",
-				"defaults":    map[string]any{},
+				"defaults":    map[string]string{},
 			},
 			expectedContent: `Content`,
 		},
@@ -105,7 +105,7 @@ func TestSubstituteVariables(t *testing.T) {
 		name        string
 		content     string
 		vars        map[string]string
-		defaults    map[string]any
+		defaults    map[string]string
 		opts        GenerateOptions
 		expected    string
 		expectError bool
@@ -168,7 +168,7 @@ func TestSubstituteVariables(t *testing.T) {
 			vars: map[string]string{
 				"style": "modern",
 			},
-			defaults: map[string]any{
+			defaults: map[string]string{
 				"style": "classic",
 				"tone":  "formal",
 			},
@@ -178,7 +178,16 @@ func TestSubstituteVariables(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := substituteVariables(tt.content, tt.vars, tt.defaults, tt.opts)
+			// Merge defaults into vars to match the new behavior
+			mergedVars := make(map[string]string)
+			for k, v := range tt.defaults {
+				mergedVars[k] = v
+			}
+			for k, v := range tt.vars {
+				mergedVars[k] = v
+			}
+
+			result, err := substituteVariables(tt.content, mergedVars, nil, tt.opts)
 
 			if tt.expectError {
 				if err == nil {

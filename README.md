@@ -8,7 +8,48 @@ Echo Templates extends the [echo](https://github.com/mkozhukh/echo) library with
 go get github.com/mkozhukh/echo-templates
 ```
 
+## Features
+
+- 🚀 **Simple string templates** - Generate messages directly from strings
+- 📁 **File-based templates** - Organize templates in filesystem
+- 📦 **Embedded templates** - Bundle templates in your binary
+- 🔄 **Hot reload** - Automatic template reloading in development
+- 🎯 **Smart imports** - Compose templates with dynamic imports
+- ⚙️ **Extensible** - Custom template sources and import resolution
+
 ## Quick Start
+
+### Simple String Template
+
+For quick and simple use cases, generate messages directly from strings:
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/mkozhukh/echo-templates"
+)
+
+func main() {
+    // Generate messages from a string template
+    messages, err := echotemplates.Generate(
+        "Hello {{name}}! How can I help you with {{topic}} today?",
+        map[string]string{
+            "name": "Alice",
+            "topic": "Go programming",
+        },
+    )
+    if err != nil {
+        panic(err)
+    }
+    
+    fmt.Println(messages[0].Content)
+    // Output: Hello Alice! How can I help you with Go programming today?
+}
+```
+
+### File-based Templates
 
 ```go
 package main
@@ -21,9 +62,16 @@ import (
 )
 
 func main() {
+    // Create a filesystem source
+    source, err := echotemplates.NewFileSystemSource("./prompts")
+    if err != nil {
+        panic(err)
+    }
+    
     // Create a template engine
     engine, err := echotemplates.New(echotemplates.Config{
-        RootDir: "./prompts",
+        Source: source,
+        DevMode: false, // Enable for development (file watching, no caching)
     })
     if err != nil {
         panic(err)
@@ -119,7 +167,7 @@ Include content from other templates:
 2. **Dynamic import**: `{{@folder/{{variable}}/file}}`
    ```markdown
    {{@styles/{{style_type}}/intro}}
-   {{@personas/{{persona}}}
+   {{@personas/{{persona}}}}
    ```
 
 ### Processing Order
@@ -130,15 +178,46 @@ Include content from other templates:
 
 ## Configuration
 
+### Template Sources
+
+Echo Templates supports multiple template sources through the `TemplateSource` interface:
+
+#### Filesystem Source
+```go
+// Create a filesystem source
+source, err := echotemplates.NewFileSystemSource("./prompts")
+
+engine, err := echotemplates.New(echotemplates.Config{
+    Source: source,
+    DevMode: true,  // Enable file watching and disable caching
+})
+```
+
+#### Embedded Templates
+```go
+//go:embed prompts/*
+var embeddedTemplates embed.FS
+
+// Create an embedded source
+source := echotemplates.NewEmbedSource(embeddedTemplates, "prompts")
+
+engine, err := echotemplates.New(echotemplates.Config{
+    Source: source,
+    DevMode: false, // Production mode with caching
+})
+```
+
 ### Engine Configuration
 
 ```go
 engine, err := echotemplates.New(echotemplates.Config{
-    // Base directory for template files
-    RootDir: "./prompts",
+    // Template source (required)
+    Source: source,
     
-    // Enable in-memory caching (default: true)
-    EnableCache: true,
+    // Development mode (default: false)
+    // - true: disables caching, enables file watching
+    // - false: enables caching for production
+    DevMode: false,
     
     // Maximum number of templates to cache (default: 100)
     CacheSize: 100,
@@ -174,6 +253,89 @@ messages, err := engine.Generate("template", vars,
 )
 ```
 
+## API Reference
+
+### Package-level Functions
+
+These functions provide a simple way to generate messages from string templates without creating an engine:
+
+#### Generate
+
+```go
+func Generate(content string, vars map[string]string, opts ...GenerateOptions) ([]echo.Message, error)
+```
+
+Generates messages from a string template.
+
+**Parameters:**
+- `content` - The template string with placeholders
+- `vars` - Variables to substitute in the template
+- `opts` - Optional generation options
+
+**Examples:**
+```go
+// Simple template (creates user message)
+messages, err := echotemplates.Generate(
+    "Hello {{name}}, welcome to {{place}}!",
+    map[string]string{"name": "Alice", "place": "Wonderland"},
+)
+// messages[0].Role == "user"
+// messages[0].Content == "Hello Alice, welcome to Wonderland!"
+
+// Template with role markers
+messages, err = echotemplates.Generate(
+    "@system:\nYou are a {{role}} assistant.\n\n@user:\n{{query}}",
+    map[string]string{"role": "helpful", "query": "What is Go?"},
+)
+// messages[0].Role == "system"
+// messages[1].Role == "user"
+```
+
+#### GenerateWithMetadata
+
+```go
+func GenerateWithMetadata(content string, vars map[string]string, opts ...GenerateOptions) ([]echo.Message, map[string]any, error)
+```
+
+Generates messages from a string template and returns any metadata defined in front-matter.
+
+**Example:**
+```go
+template := `# temperature: 0.7
+# model: gpt-4
+
+Hello {{name}}!`
+
+messages, metadata, err := echotemplates.GenerateWithMetadata(
+    template,
+    map[string]string{"name": "Bob"},
+)
+// metadata["temperature"] == 0.7
+// metadata["model"] == "gpt-4"
+```
+
+**Notes:** 
+- String templates do not support imports (`{{@...}}`). Use file-based or embedded sources for templates with imports.
+- If no role markers (`@role:`) are present, the content becomes a single user message.
+
+### Engine Functions
+
+For file-based templates, create an engine with a template source:
+
+```go
+// Create source
+source, err := echotemplates.NewFileSystemSource("./templates")
+
+// Create engine
+engine, err := echotemplates.New(echotemplates.Config{
+    Source: source,
+    DevMode: false,
+})
+
+// Generate from file
+messages, err := engine.Generate("prompt", vars)
+```
+
 ## Advanced Usage
 
 ### Using Template Metadata
@@ -197,6 +359,56 @@ if defaults, ok := metadata["defaults"].(map[string]any); ok {
 }
 ```
 
+### Custom Template Sources
+
+Implement the `TemplateSource` interface to create custom sources:
+
+```go
+type TemplateSource interface {
+    Open(path string) (io.ReadCloser, error)
+    Stat(path string) (TemplateInfo, error)
+    List() ([]string, error)
+    Watch() (<-chan string, error)
+    StopWatch() error
+    ResolveImport(importPath, currentPath string) string
+}
+```
+
+Example: Database-backed templates, remote templates, etc.
+
+### Custom Import Resolution
+
+Override import resolution for relative imports or custom logic:
+
+```go
+type customSource struct {
+    *echotemplates.FileSystemSource
+}
+
+func (s *customSource) ResolveImport(importPath, currentPath string) string {
+    // Custom logic: resolve imports relative to current template
+    if !filepath.IsAbs(importPath) {
+        dir := filepath.Dir(currentPath)
+        return filepath.Join(dir, importPath)
+    }
+    return "" // Use default resolution
+}
+```
+
+### File Watching in Development
+
+In dev mode, the filesystem source automatically watches for template changes:
+
+```go
+engine, err := echotemplates.New(echotemplates.Config{
+    Source: source,
+    DevMode: true, // Enables file watching
+})
+
+// Templates are automatically reloaded when files change
+// No need to restart the application during development
+```
+
 ### Dynamic Imports
 
 Create flexible templates with variable-based imports:
@@ -212,9 +424,25 @@ You are configured with the above persona and style.
 {{user_input}}
 ```
 
+### Template Introspection
+
+```go
+// Check if a template exists
+exists := engine.TemplateExists("chat/assistant")
+
+// List all available templates
+templates, err := engine.ListTemplates()
+
+// Get all variables used in a template
+vars, err := engine.GetTemplateVariables("chat/assistant")
+
+// Validate a template without generating
+err := engine.ValidateTemplate("chat/assistant")
+```
+
 ### Clearing Cache
 
-During development, you may want to clear the template cache:
+During development or when templates change:
 
 ```go
 engine.ClearCache()
@@ -249,13 +477,64 @@ if err != nil {
 The template engine implements an LRU cache with automatic invalidation:
 
 - Templates are cached after parsing (before variable substitution)
-- Cache is invalidated when template files are modified
+- Cache is automatically disabled in dev mode
+- In production mode with filesystem source, cache is invalidated when template files are modified
 - Cache size is configurable
 - Can be disabled globally or per-request
 
 ## Thread Safety
 
 The template engine is thread-safe and can be used concurrently from multiple goroutines.
+
+## Why Echo Templates?
+
+Echo Templates is about doing one thing well: managing LLM prompts.
+
+### Designed for LLM Prompts
+
+Unlike Go's `text/template` or other template engines, Echo Templates understands the structure of LLM conversations:
+
+- **Role-based messages** - Native support for `@system:`, `@user:`, `@assistant:` markers
+- **Message arrays** - Outputs `[]echo.Message` ready for LLM APIs, not just strings
+- **Front-matter metadata** - Embed temperature, model preferences, and other LLM parameters directly in templates
+- **Minimal syntax** - Just `{{variables}}` and `{{@imports}}`, no loops or conditionals
+- **File watching** - Templates reload automatically during prompt iteration
+
+### What It's NOT
+
+Echo Templates intentionally doesn't include:
+
+- ❌ Logic operations (if/else, loops, comparisons)
+- ❌ Function calls or pipelines
+- ❌ Complex data structures
+- ❌ HTML/JS escaping
+- ❌ General-purpose templating features
+
+If you need these features, use Go's `text/template`. Echo Templates focuses on making LLM prompt management simple, maintainable, and purpose-built for AI applications.
+
+### Example: Why It Matters
+
+```go
+// With text/template (general purpose)
+tmpl := template.Must(template.New("prompt").Parse(`
+{{if .IsCreative}}You are a creative assistant.{{else}}You are a helpful assistant.{{end}}
+
+User: {{.Query}}`))
+
+var buf bytes.Buffer
+tmpl.Execute(&buf, data)
+// Now you need to parse this into messages somehow...
+
+// With Echo Templates (purpose-built)
+messages, _ := echotemplates.Generate(`
+	@system: You are a {{role}} assistant.
+	@user:
+	{{query}}`,
+    map[string]string{"role": roleType, "query": userQuery},
+)
+// Ready to send to OpenAI/Claude/etc!
+```
+
 
 ## License
 

@@ -13,35 +13,27 @@ func TestNew(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		config      Config
+		root        string
 		expectError bool
 	}{
 		{
-			name: "valid config",
-			config: Config{
-				RootDir: tmpDir,
-			},
+			name:        "valid config",
+			root:        tmpDir,
 			expectError: false,
 		},
 		{
-			name: "missing root dir",
-			config: Config{
-				RootDir: "",
-			},
+			name:        "missing source",
+			root:        "",
 			expectError: true,
 		},
 		{
-			name: "non-existent root dir",
-			config: Config{
-				RootDir: "/non/existent/path",
-			},
+			name:        "non-existent root dir",
+			root:        "/non/existent/path",
 			expectError: true,
 		},
 		{
-			name: "file as root dir",
-			config: Config{
-				RootDir: filepath.Join(tmpDir, "file.txt"),
-			},
+			name:        "file as root dir",
+			root:        filepath.Join(tmpDir, "file.txt"),
 			expectError: true,
 		},
 	}
@@ -51,19 +43,27 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			engine, err := New(tt.config)
-
+			rootTmpDir, err := NewFileSystemSource(tt.root)
 			if tt.expectError {
 				if err == nil {
 					t.Error("Expected error but got none")
 				}
+				return
 			} else {
 				if err != nil {
 					t.Errorf("Unexpected error: %v", err)
+					return
 				}
-				if engine == nil {
+				if rootTmpDir == nil {
 					t.Error("Expected engine but got nil")
 				}
+			}
+
+			engine, err := New(Config{
+				Source: rootTmpDir,
+			})
+			if err != nil || engine == nil {
+				t.Fatalf("Failed to create source: %v", err)
 			}
 		})
 	}
@@ -92,8 +92,13 @@ You are a {{role}} assistant with a {{tone}} tone.`), 0644)
 {{@common/header}}
 Your specialty is {{domain}}.`), 0644)
 
+	tmpDirRoot, err := NewFileSystemSource(tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	engine, err := New(Config{
-		RootDir: tmpDir,
+		Source: tmpDirRoot,
 	})
 	if err != nil {
 		t.Fatalf("Failed to create engine: %v", err)
@@ -201,8 +206,13 @@ func TestGenerateWithOptions(t *testing.T) {
 	os.WriteFile(filepath.Join(tmpDir, "optional.md"), []byte(`@system:
 Hello {{name}}!`), 0644)
 
+	tmpDirRoot, err := NewFileSystemSource(tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	engine, err := New(Config{
-		RootDir: tmpDir,
+		Source: tmpDirRoot,
 	})
 	if err != nil {
 		t.Fatalf("Failed to create engine: %v", err)
@@ -233,8 +243,13 @@ func TestGenerateWithMetadata(t *testing.T) {
 @system:
 Hello!`), 0644)
 
+	tmpDirRoot, err := NewFileSystemSource(tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	engine, err := New(Config{
-		RootDir: tmpDir,
+		Source: tmpDirRoot,
 	})
 	if err != nil {
 		t.Fatalf("Failed to create engine: %v", err)
@@ -277,8 +292,13 @@ Content A`), 0644)
 	os.WriteFile(filepath.Join(tmpDir, "b.md"), []byte(`{{@a}}
 Content B`), 0644)
 
+	tmpDirRoot, err := NewFileSystemSource(tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	engine, err := New(Config{
-		RootDir: tmpDir,
+		Source: tmpDirRoot,
 		DefaultOptions: GenerateOptions{
 			StrictMode: true,
 		},
@@ -310,8 +330,13 @@ func TestDynamicImports(t *testing.T) {
 {{@styles/{{style}}}}
 Main content`), 0644)
 
+	tmpDirRoot, err := NewFileSystemSource(tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	engine, err := New(Config{
-		RootDir: tmpDir,
+		Source: tmpDirRoot,
 	})
 	if err != nil {
 		t.Fatalf("Failed to create engine: %v", err)
@@ -347,9 +372,14 @@ func TestCaching(t *testing.T) {
 	os.WriteFile(templatePath, []byte(`@system:
 Original content`), 0644)
 
+	source, err := NewFileSystemSource(tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to create source: %v", err)
+	}
+
 	engine, err := New(Config{
-		RootDir:     tmpDir,
-		EnableCache: true,
+		Source:  source,
+		DevMode: false,
 	})
 	if err != nil {
 		t.Fatalf("Failed to create engine: %v", err)
