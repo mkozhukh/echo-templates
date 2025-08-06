@@ -63,7 +63,7 @@ func (e *templateEngine) handleFileChanges() {
 }
 
 // Generate creates messages from a template
-func (e *templateEngine) Generate(name string, vars map[string]string, opts ...GenerateOptions) ([]echo.Message, error) {
+func (e *templateEngine) Generate(name string, vars map[string]any, opts ...GenerateOptions) ([]echo.Message, error) {
 	options := e.config.DefaultOptions
 	if len(opts) > 0 {
 		options = opts[0]
@@ -73,7 +73,7 @@ func (e *templateEngine) Generate(name string, vars map[string]string, opts ...G
 }
 
 // GenerateWithMetadata creates messages and returns template metadata
-func (e *templateEngine) GenerateWithMetadata(name string, vars map[string]string, opts ...GenerateOptions) ([]echo.Message, map[string]any, error) {
+func (e *templateEngine) GenerateWithMetadata(name string, vars map[string]any, opts ...GenerateOptions) ([]echo.Message, map[string]any, error) {
 	options := e.config.DefaultOptions
 	if len(opts) > 0 {
 		options = opts[0]
@@ -89,7 +89,7 @@ func (e *templateEngine) ClearCache() {
 }
 
 // generateInternal is the core generation logic
-func (e *templateEngine) generateInternal(name string, vars map[string]string, opts GenerateOptions) ([]echo.Message, map[string]any, error) {
+func (e *templateEngine) generateInternal(name string, vars map[string]any, opts GenerateOptions) ([]echo.Message, map[string]any, error) {
 	// Ensure .md extension (except for stringSource where name is the content)
 	if _, isStringSource := e.source.(*stringSource); !isStringSource && !strings.HasSuffix(name, ".md") {
 		name = name + ".md"
@@ -106,8 +106,11 @@ func (e *templateEngine) generateInternal(name string, vars map[string]string, o
 		return nil, nil, fmt.Errorf("imports are not supported in string templates")
 	}
 
+	// Convert vars to string map for processing
+	stringVars := convertToStringMap(vars)
+
 	// Process imports recursively
-	content, err := e.processImports(template.content, vars, opts, name)
+	content, err := e.processImports(template.content, stringVars, opts, name)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -121,7 +124,7 @@ func (e *templateEngine) generateInternal(name string, vars map[string]string, o
 			}
 		}
 	}
-	for k, v := range vars {
+	for k, v := range stringVars {
 		mergedVars[k] = v
 	}
 
@@ -281,9 +284,20 @@ func toString(v any) string {
 		return strconv.Itoa(val)
 	case float64:
 		return strconv.FormatFloat(val, 'f', -1, 64)
+	case []string:
+		return strings.Join(val, ",")
 	default:
 		return ""
 	}
+}
+
+// convertToStringMap converts map[string]any to map[string]string
+func convertToStringMap(vars map[string]any) map[string]string {
+	result := make(map[string]string)
+	for k, v := range vars {
+		result[k] = toString(v)
+	}
+	return result
 }
 
 // ValidateTemplate checks if a template is valid without generating messages

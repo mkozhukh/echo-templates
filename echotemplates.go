@@ -8,10 +8,10 @@ import (
 type TemplateEngine interface {
 	// Generate creates messages from a template
 	// If name doesn't contain .md suffix, it will be added automatically
-	Generate(name string, vars map[string]string, opts ...GenerateOptions) ([]echo.Message, error)
+	Generate(name string, vars map[string]any, opts ...GenerateOptions) ([]echo.Message, error)
 
 	// GenerateWithMetadata creates messages and returns template metadata
-	GenerateWithMetadata(name string, vars map[string]string, opts ...GenerateOptions) ([]echo.Message, map[string]any, error)
+	GenerateWithMetadata(name string, vars map[string]any, opts ...GenerateOptions) ([]echo.Message, map[string]any, error)
 
 	// ClearCache removes cached templates (useful for development)
 	ClearCache()

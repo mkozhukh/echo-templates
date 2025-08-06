@@ -69,7 +69,7 @@ func getStringEngine() (TemplateEngine, error) {
 }
 
 // Generate creates messages from a string template
-func Generate(content string, vars map[string]string, opts ...GenerateOptions) ([]echo.Message, error) {
+func Generate(content string, vars map[string]any, opts ...GenerateOptions) ([]echo.Message, error) {
 	engine, err := getStringEngine()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize string engine: %w", err)
@@ -81,7 +81,7 @@ func Generate(content string, vars map[string]string, opts ...GenerateOptions) (
 }
 
 // GenerateWithMetadata creates messages from a string template and returns metadata
-func GenerateWithMetadata(content string, vars map[string]string, opts ...GenerateOptions) ([]echo.Message, map[string]any, error) {
+func GenerateWithMetadata(content string, vars map[string]any, opts ...GenerateOptions) ([]echo.Message, map[string]any, error) {
 	engine, err := getStringEngine()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to initialize string engine: %w", err)

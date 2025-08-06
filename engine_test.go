@@ -108,18 +108,18 @@ Your specialty is {{domain}}.`), 0644)
 	tests := []struct {
 		name         string
 		template     string
-		vars         map[string]string
+		vars         map[string]any
 		expectError  bool
-		checkContent func(t *testing.T, messages []interface{})
+		checkContent func(t *testing.T, messages []any)
 	}{
 		{
 			name:     "simple template",
 			template: "simple",
-			vars: map[string]string{
+			vars: map[string]any{
 				"role":  "helpful",
 				"query": "Hello!",
 			},
-			checkContent: func(t *testing.T, messages []interface{}) {
+			checkContent: func(t *testing.T, messages []any) {
 				if len(messages) != 2 {
 					t.Errorf("Expected 2 messages, got %d", len(messages))
 				}
@@ -128,11 +128,11 @@ Your specialty is {{domain}}.`), 0644)
 		{
 			name:     "template with .md extension",
 			template: "simple.md",
-			vars: map[string]string{
+			vars: map[string]any{
 				"role":  "helpful",
 				"query": "Hello!",
 			},
-			checkContent: func(t *testing.T, messages []interface{}) {
+			checkContent: func(t *testing.T, messages []any) {
 				if len(messages) != 2 {
 					t.Errorf("Expected 2 messages, got %d", len(messages))
 				}
@@ -141,10 +141,10 @@ Your specialty is {{domain}}.`), 0644)
 		{
 			name:     "with defaults",
 			template: "with-defaults",
-			vars: map[string]string{
+			vars: map[string]any{
 				"tone": "professional", // Override default
 			},
-			checkContent: func(t *testing.T, messages []interface{}) {
+			checkContent: func(t *testing.T, messages []any) {
 				if len(messages) != 1 {
 					t.Errorf("Expected 1 message, got %d", len(messages))
 				}
@@ -153,10 +153,10 @@ Your specialty is {{domain}}.`), 0644)
 		{
 			name:     "with import",
 			template: "with-import",
-			vars: map[string]string{
+			vars: map[string]any{
 				"domain": "mathematics",
 			},
-			checkContent: func(t *testing.T, messages []interface{}) {
+			checkContent: func(t *testing.T, messages []any) {
 				if len(messages) != 1 {
 					t.Errorf("Expected 1 message, got %d", len(messages))
 				}
@@ -165,13 +165,13 @@ Your specialty is {{domain}}.`), 0644)
 		{
 			name:        "non-existent template",
 			template:    "non-existent",
-			vars:        map[string]string{},
+			vars:        map[string]any{},
 			expectError: true,
 		},
 		{
 			name:        "missing required variable",
 			template:    "simple",
-			vars:        map[string]string{},
+			vars:        map[string]any{},
 			expectError: true,
 		},
 	}
@@ -189,8 +189,8 @@ Your specialty is {{domain}}.`), 0644)
 					t.Errorf("Unexpected error: %v", err)
 				}
 				if tt.checkContent != nil {
-					// Convert messages to interface{} slice for easier testing
-					var msgInterfaces []interface{}
+					// Convert messages to any slice for easier testing
+					var msgInterfaces []any
 					for _, msg := range messages {
 						msgInterfaces = append(msgInterfaces, msg)
 					}
@@ -224,7 +224,7 @@ Hello {{name}}!`), 0644)
 		AllowMissingVars: true,
 	}
 
-	messages, err := engine.Generate("optional", map[string]string{}, opts)
+	messages, err := engine.Generate("optional", map[string]any{}, opts)
 	if err != nil {
 		t.Errorf("Expected no error with AllowMissingVars, got: %v", err)
 	}
@@ -257,7 +257,7 @@ Hello!`), 0644)
 		t.Fatalf("Failed to create engine: %v", err)
 	}
 
-	messages, metadata, err := engine.GenerateWithMetadata("with-meta", map[string]string{})
+	messages, metadata, err := engine.GenerateWithMetadata("with-meta", map[string]any{})
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -309,7 +309,7 @@ Content B`), 0644)
 		t.Fatalf("Failed to create engine: %v", err)
 	}
 
-	_, err = engine.Generate("a", map[string]string{})
+	_, err = engine.Generate("a", map[string]any{})
 	if err == nil {
 		t.Error("Expected error for circular import")
 	}
@@ -345,7 +345,7 @@ Main content`), 0644)
 	}
 
 	// Test with formal style
-	messages, err := engine.Generate("main", map[string]string{
+	messages, err := engine.Generate("main", map[string]any{
 		"style": "formal",
 	})
 	if err != nil {
@@ -356,7 +356,7 @@ Main content`), 0644)
 	}
 
 	// Test with casual style
-	messages, err = engine.Generate("main", map[string]string{
+	messages, err = engine.Generate("main", map[string]any{
 		"style": "casual",
 	})
 	if err != nil {
@@ -388,7 +388,7 @@ Original content`), 0644)
 	}
 
 	// First generation
-	messages1, err := engine.Generate("cached", map[string]string{})
+	messages1, err := engine.Generate("cached", map[string]any{})
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -398,7 +398,7 @@ Original content`), 0644)
 Modified content`), 0644)
 
 	// Second generation should get new content
-	messages2, err := engine.Generate("cached", map[string]string{})
+	messages2, err := engine.Generate("cached", map[string]any{})
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -416,7 +416,7 @@ Modified content`), 0644)
 	opts := GenerateOptions{
 		DisableCache: true,
 	}
-	_, err = engine.Generate("cached", map[string]string{}, opts)
+	_, err = engine.Generate("cached", map[string]any{}, opts)
 	if err != nil {
 		t.Errorf("Unexpected error with DisableCache: %v", err)
 	}

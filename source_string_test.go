@@ -8,14 +8,14 @@ func TestStringGeneration(t *testing.T) {
 	tests := []struct {
 		name     string
 		content  string
-		vars     map[string]string
+		vars     map[string]any
 		wantErr  bool
 		wantMsgs int
 	}{
 		{
 			name:     "simple template",
 			content:  "Hello {{name}}!",
-			vars:     map[string]string{"name": "World"},
+			vars:     map[string]any{"name": "World"},
 			wantMsgs: 1,
 		},
 		{
@@ -25,7 +25,7 @@ You are {{role}}.
 
 @user:
 {{question}}`,
-			vars:     map[string]string{"role": "helpful", "question": "What is Go?"},
+			vars:     map[string]any{"role": "helpful", "question": "What is Go?"},
 			wantMsgs: 2,
 		},
 		{
@@ -35,26 +35,26 @@ default.greeting: Hello
 default.name: Friend
 ---
 {{greeting}} {{name}}!`,
-			vars:     map[string]string{"name": "Alice"},
+			vars:     map[string]any{"name": "Alice"},
 			wantMsgs: 1,
 		},
 		{
 			name: "template with raw content",
 			content: `Code:
 {{{code}}}`,
-			vars:     map[string]string{"code": "func main() {\n\tfmt.Println(\"Hello\")\n}"},
+			vars:     map[string]any{"code": "func main() {\n\tfmt.Println(\"Hello\")\n}"},
 			wantMsgs: 1,
 		},
 		{
 			name:    "imports not supported",
 			content: "{{@common/header}}",
-			vars:    map[string]string{},
+			vars:    map[string]any{},
 			wantErr: true,
 		},
 		{
 			name:    "missing variable in strict mode",
 			content: "Hello {{name}}!",
-			vars:    map[string]string{},
+			vars:    map[string]any{},
 			wantErr: true,
 		},
 	}
@@ -88,7 +88,7 @@ default.role: assistant
 @system:
 You are a {{role}}.`
 
-	messages, metadata, err := GenerateWithMetadata(content, map[string]string{})
+	messages, metadata, err := GenerateWithMetadata(content, map[string]any{})
 	if err != nil {
 		t.Errorf("GenerateWithMetadata() error = %v", err)
 		return

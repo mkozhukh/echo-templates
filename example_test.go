@@ -27,7 +27,7 @@ func ExampleFileSystemSource() {
 	}
 
 	// Generate messages
-	messages, err := engine.Generate("hello", map[string]string{
+	messages, err := engine.Generate("hello", map[string]any{
 		"name": "World",
 	})
 	if err != nil {
@@ -62,7 +62,7 @@ func ExampleEmbedSource() {
 	}
 
 	// Generate messages
-	messages, err := engine.Generate("example", map[string]string{
+	messages, err := engine.Generate("example", map[string]any{
 		"topic": "AI",
 	})
 	if err != nil {
@@ -74,7 +74,7 @@ func ExampleEmbedSource() {
 	}
 }
 
-func ExampleCustomImportResolver() {
+func Example_customImportResolver() {
 	// Create a custom source with import resolution
 	type customSource struct {
 		echotemplates.TemplateSource
@@ -111,12 +111,12 @@ func ExampleCustomImportResolver() {
 
 func Example_stringGeneration() {
 	// Generate messages directly from a string template
-	messages, _ := echotemplates.Generate("Hello {{name}}!", map[string]string{"name": "World"})
+	messages, _ := echotemplates.Generate("Hello {{name}}!", map[string]any{"name": "World"})
 	fmt.Printf("Content: %s\n", messages[0].Content)
 	// Output: Content: Hello World!
 }
 
-func ExampleFileWatching() {
+func Example_fileWatching() {
 	// Create a temporary directory for testing
 	tmpDir, err := os.MkdirTemp("", "templates")
 	if err != nil {
@@ -147,7 +147,7 @@ func ExampleFileWatching() {
 	}
 
 	// Generate with initial content
-	messages, _ := engine.Generate("test", map[string]string{"name": "World"})
+	messages, _ := engine.Generate("test", map[string]any{"name": "World"})
 	fmt.Printf("Initial: %s\n", messages[0].Content)
 
 	// Modify the template file
@@ -160,6 +160,6 @@ func ExampleFileWatching() {
 	// (In real usage, this happens automatically)
 
 	// Generate again - will use updated content
-	messages, _ = engine.Generate("test", map[string]string{"name": "World"})
+	messages, _ = engine.Generate("test", map[string]any{"name": "World"})
 	fmt.Printf("Updated: %s\n", messages[0].Content)
 }

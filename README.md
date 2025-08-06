@@ -35,7 +35,7 @@ func main() {
     // Generate messages from a string template
     messages, err := echotemplates.Generate(
         "Hello {{name}}! How can I help you with {{topic}} today?",
-        map[string]string{
+        map[string]any{
             "name": "Alice",
             "topic": "Go programming",
         },
@@ -78,7 +78,7 @@ func main() {
     }
     
     // Generate messages from a template
-    messages, err := engine.Generate("chat/assistant", map[string]string{
+    messages, err := engine.Generate("chat/assistant", map[string]any{
         "role": "helpful",
         "domain": "mathematics",
         "user_query": "What is calculus?",
@@ -263,14 +263,14 @@ These functions provide a simple way to generate messages from string templates 
 #### Generate
 
 ```go
-func Generate(content string, vars map[string]string, opts ...GenerateOptions) ([]echo.Message, error)
+func Generate(content string, vars map[string]any, opts ...GenerateOptions) ([]echo.Message, error)
 ```
 
 Generates messages from a string template.
 
 **Parameters:**
 - `content` - The template string with placeholders
-- `vars` - Variables to substitute in the template
+- `vars` - Variables to substitute in the template (supports string, int, float64, []string)
 - `opts` - Optional generation options
 
 **Examples:**
@@ -278,15 +278,26 @@ Generates messages from a string template.
 // Simple template (creates user message)
 messages, err := echotemplates.Generate(
     "Hello {{name}}, welcome to {{place}}!",
-    map[string]string{"name": "Alice", "place": "Wonderland"},
+    map[string]any{"name": "Alice", "place": "Wonderland"},
 )
 // messages[0].Role == "user"
 // messages[0].Content == "Hello Alice, welcome to Wonderland!"
 
+// Template with different value types
+messages, err = echotemplates.Generate(
+    "User {{name}} (age {{age}}) scored {{score}} with tags: {{tags}}",
+    map[string]any{
+        "name": "Bob",
+        "age": 25,                // int
+        "score": 98.5,             // float64
+        "tags": []string{"go", "testing"},  // []string -> "go,testing"
+    },
+)
+
 // Template with role markers
 messages, err = echotemplates.Generate(
     "@system:\nYou are a {{role}} assistant.\n\n@user:\n{{query}}",
-    map[string]string{"role": "helpful", "query": "What is Go?"},
+    map[string]any{"role": "helpful", "query": "What is Go?"},
 )
 // messages[0].Role == "system"
 // messages[1].Role == "user"
@@ -295,7 +306,7 @@ messages, err = echotemplates.Generate(
 #### GenerateWithMetadata
 
 ```go
-func GenerateWithMetadata(content string, vars map[string]string, opts ...GenerateOptions) ([]echo.Message, map[string]any, error)
+func GenerateWithMetadata(content string, vars map[string]any, opts ...GenerateOptions) ([]echo.Message, map[string]any, error)
 ```
 
 Generates messages from a string template and returns any metadata defined in front-matter.
@@ -310,7 +321,7 @@ Hello {{name}}!`
 
 messages, metadata, err := echotemplates.GenerateWithMetadata(
     template,
-    map[string]string{"name": "Bob"},
+    map[string]any{"name": "Bob"},
 )
 // metadata["temperature"] == 0.7
 // metadata["model"] == "gpt-4"
@@ -319,6 +330,28 @@ messages, metadata, err := echotemplates.GenerateWithMetadata(
 **Notes:** 
 - String templates do not support imports (`{{@...}}`). Use file-based or embedded sources for templates with imports.
 - If no role markers (`@role:`) are present, the content becomes a single user message.
+
+#### CallOptions
+
+```go
+func CallOptions(metadata map[string]any) []echo.CallOption
+```
+
+Creates echo.CallOption slice from template metadata for configuring LLM API calls.
+
+**Example:**
+```go
+messages, metadata, _ := engine.GenerateWithMetadata("template", vars)
+opts := echotemplates.CallOptions(metadata)
+client.Call(ctx, messages, opts...)
+```
+
+The `CallOptions` function automatically extracts and converts:
+
+- `model` (string) → `echo.WithModel(model)`
+- `temperature` (float64) → `echo.WithTemperature(temp)`
+- `max_tokens` (int) → `echo.WithMaxTokens(maxTokens)`
+
 
 ### Engine Functions
 
@@ -532,7 +565,7 @@ messages, _ := echotemplates.Generate(`
 	@system: You are a {{role}} assistant.
 	@user:
 	{{query}}`,
-    map[string]string{"role": roleType, "query": userQuery},
+    map[string]any{"role": roleType, "query": userQuery},
 )
 // Ready to send to OpenAI/Claude/etc!
 ```
@@ -542,7 +575,7 @@ messages, _ := echotemplates.Generate(`
 
 MIT License
 
-Copyright (c) 2025
+Copyright (c) 2025 Maksim Kozhukh
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
