@@ -208,6 +208,22 @@ engine, err := echotemplates.New(echotemplates.Config{
 })
 ```
 
+#### Mock Source (for testing)
+```go
+// Create a mock source with in-memory templates
+templates := map[string]string{
+    "greeting.md": "@system:\nYou are a {{role}} assistant.\n\n@user:\n{{message}}",
+    "chat.md": "Hello {{name}}!",
+}
+
+source := echotemplates.NewMockSource(templates)
+
+engine, err := echotemplates.New(echotemplates.Config{
+    Source: source,
+    DevMode: false,
+})
+```
+
 ### Engine Configuration
 
 ```go
