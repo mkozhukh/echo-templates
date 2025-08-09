@@ -206,41 +206,22 @@ func TestCallOptionsRealWorld(t *testing.T) {
 	}
 }
 
-// Helper function to check if two slices of options are equal
-// Note: This is a simplified check since we can't directly compare CallOption values
-func optionsEqual(a, b []echo.CallOption) bool {
-	return len(a) == len(b)
-}
-
-// Benchmark to ensure performance is reasonable
-func BenchmarkCallOptions(b *testing.B) {
-	metadata := map[string]any{
-		"model":       "gpt-4",
-		"temperature": 0.7,
-		"max_tokens":  2000,
-		"extra1":      "ignored",
-		"extra2":      123,
-		"extra3":      true,
+func TestExtendData(t *testing.T) {
+	base := map[string]any{
+		"max_tokens": 4096,
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = CallOptions(metadata)
+	ext := Extend(base, "x")
+
+	if ext["max_tokens"] != 4096 {
+		t.Errorf("Expected max_tokens to be 4096, got %v", ext["max_tokens"])
 	}
-}
-
-func BenchmarkCallOptionsEmpty(b *testing.B) {
-	metadata := map[string]any{}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = CallOptions(metadata)
+	if ext["user_query"] != "x" {
+		t.Errorf("Expected user_query to be 'x', got %v", ext["x"])
 	}
-}
 
-func BenchmarkCallOptionsNil(b *testing.B) {
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = CallOptions(nil)
+	ext["1"] = "one"
+	if base["1"] == "one" {
+		t.Errorf("Expected base not to be updated, got %v", base["1"])
 	}
 }

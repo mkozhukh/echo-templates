@@ -29,3 +29,13 @@ func CallOptions(metadata map[string]any) []echo.CallOption {
 
 	return opts
 }
+
+func Extend(metadata map[string]any, content string) map[string]any {
+	copy := make(map[string]any)
+	for k, v := range metadata {
+		copy[k] = v
+	}
+	copy["user_query"] = content
+
+	return copy
+}
